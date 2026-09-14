@@ -1,0 +1,609 @@
+openapi: 3.0.3
+info:
+  title: Forgetcase
+  version: 0.1.0
+  description: >-
+    Article 17 right-to-erasure case desk with grounds/exemptions, one-month SLA,
+    children weighting, recipient notices, and backup beyond-use evidence.
+  x-product-slug: ai-decentralized-forgetcase
+  x-source: ai-in-decentralized+ai/Right to erasure _ ICO/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Cases
+  - name: Assessments
+  - name: SlaClocks
+  - name: BackupTasks
+  - name: Correspondence
+paths:
+  /v1/erasure-cases:
+    get:
+      operationId: listErasureCases
+      tags: [Cases]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [intake, assessing, fulfilling, refused, completed]
+      responses:
+        "200":
+          description: Cases page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeErasureCase"
+    post:
+      operationId: createErasureCase
+      tags: [Cases]
+      security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErasureCaseCreate"
+      responses:
+        "201":
+          description: Case created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeErasureCase"
+  /v1/erasure-cases/{caseId}:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getErasureCase
+      tags: [Cases]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeErasureCase"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/erasure-cases/{caseId}/assessment:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: submitGroundAssessment
+      tags: [Assessments]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroundAssessment"
+      responses:
+        "200":
+          description: Assessment recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeGroundAssessment"
+  /v1/erasure-cases/{caseId}/exemptions:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: applyExemption
+      tags: [Assessments]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExemptionRecord"
+      responses:
+        "201":
+          description: Exemption applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeExemptionRecord"
+  /v1/erasure-cases/{caseId}/sla:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getSlaClock
+      tags: [SlaClocks]
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: SLA clock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeSlaClock"
+  /v1/erasure-cases/{caseId}/sla/extension:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: extendSlaClock
+      tags: [SlaClocks]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  enum: [complex, multiple_requests]
+                additionalMonths: { type: integer, maximum: 2 }
+      responses:
+        "200":
+          description: Extension recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeSlaClock"
+  /v1/erasure-cases/{caseId}/identity-challenge:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: requestIdentityChallenge
+      tags: [SlaClocks]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityChallenge"
+      responses:
+        "201":
+          description: ID challenge issued; clock paused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeIdentityChallenge"
+  /v1/backup-beyond-use-tasks:
+    get:
+      operationId: listBackupBeyondUseTasks
+      tags: [BackupTasks]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: caseId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Backup tasks page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeBackupBeyondUseTask"
+    post:
+      operationId: createBackupBeyondUseTask
+      tags: [BackupTasks]
+      security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackupBeyondUseTaskCreate"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBackupBeyondUseTask"
+  /v1/backup-beyond-use-tasks/{taskId}/complete:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: completeBackupBeyondUseTask
+      tags: [BackupTasks]
+      security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [beyondUseConfirmed, overwriteScheduledAt]
+              properties:
+                beyondUseConfirmed: { type: boolean }
+                overwriteScheduledAt: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBackupBeyondUseTask"
+  /v1/erasure-cases/{caseId}/correspondence:
+    parameters:
+      - name: caseId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: sendCaseCorrespondence
+      tags: [Correspondence]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorrespondenceItemCreate"
+      responses:
+        "201":
+          description: Correspondence queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeCorrespondenceItem"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+
+    ErasureCase:
+      type: object
+      required: [id, channel, status, receivedAt, dueAt]
+      properties:
+        id: { type: string }
+        channel:
+          type: string
+          enum: [verbal, written, portal]
+        status:
+          type: string
+          enum: [intake, assessing, fulfilling, refused, completed]
+        receivedAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        childDataWeight: { type: boolean }
+        subjectRef: { type: string }
+    ErasureCaseCreate:
+      type: object
+      required: [channel, receivedAt, subjectRef]
+      properties:
+        channel:
+          type: string
+          enum: [verbal, written, portal]
+        receivedAt: { type: string, format: date-time }
+        subjectRef: { type: string }
+        requestSummary: { type: string }
+        childDataWeight: { type: boolean }
+    GroundAssessment:
+      type: object
+      required: [rightApplies, grounds]
+      properties:
+        id: { type: string }
+        rightApplies: { type: boolean }
+        grounds:
+          type: array
+          items:
+            type: string
+            enum: [no_longer_necessary, consent_withdrawn, legitimate_interest_objection, marketing_objection, unlawful, legal_obligation, child_iss]
+        notes: { type: string }
+    ExemptionRecord:
+      type: object
+      required: [exemptionType, rationale]
+      properties:
+        id: { type: string }
+        exemptionType:
+          type: string
+          enum: [freedom_of_expression, legal_obligation, public_interest_task, archiving_research_statistics, legal_claims, public_health, occupational_medicine, manifestly_unfounded, excessive, dpa_2018]
+        rationale: { type: string }
+    SlaClock:
+      type: object
+      required: [caseId, dueAt, paused]
+      properties:
+        caseId: { type: string }
+        dueAt: { type: string, format: date-time }
+        operationalTargetDueAt: { type: string, format: date-time }
+        paused: { type: boolean }
+        extensionApplied: { type: boolean }
+        extensionReason: { type: string }
+    IdentityChallenge:
+      type: object
+      required: [requestedAt, status]
+      properties:
+        id: { type: string }
+        requestedAt: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [pending, satisfied, withdrawn]
+        proportionalityNote: { type: string }
+    BackupBeyondUseTask:
+      type: object
+      required: [id, caseId, status]
+      properties:
+        id: { type: string }
+        caseId: { type: string }
+        backupSystem: { type: string }
+        status:
+          type: string
+          enum: [open, beyond_use, overwritten]
+        overwriteScheduledAt: { type: string, format: date-time }
+    BackupBeyondUseTaskCreate:
+      type: object
+      required: [caseId, backupSystem]
+      properties:
+        caseId: { type: string }
+        backupSystem: { type: string }
+    CorrespondenceItem:
+      type: object
+      required: [id, caseId, templateType, status]
+      properties:
+        id: { type: string }
+        caseId: { type: string }
+        templateType:
+          type: string
+          enum: [completion, refusal, extension_notice, identity_request, recipient_list]
+        status:
+          type: string
+          enum: [queued, sent]
+        includesIcoComplaintRights: { type: boolean }
+    CorrespondenceItemCreate:
+      type: object
+      required: [templateType]
+      properties:
+        templateType:
+          type: string
+          enum: [completion, refusal, extension_notice, identity_request, recipient_list]
+        body: { type: string }
+
+    DataEnvelopeErasureCase:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ErasureCase"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeErasureCase:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ErasureCase"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeGroundAssessment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/GroundAssessment"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeGroundAssessment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GroundAssessment"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeExemptionRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ExemptionRecord"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeExemptionRecord:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ExemptionRecord"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeSlaClock:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/SlaClock"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeSlaClock:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SlaClock"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeIdentityChallenge:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/IdentityChallenge"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeIdentityChallenge:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/IdentityChallenge"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeBackupBeyondUseTask:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/BackupBeyondUseTask"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeBackupBeyondUseTask:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/BackupBeyondUseTask"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DataEnvelopeCorrespondenceItem:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CorrespondenceItem"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeCorrespondenceItem:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CorrespondenceItem"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
