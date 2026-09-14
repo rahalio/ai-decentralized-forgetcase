@@ -1,0 +1,18 @@
+{
+  "name": "@forgetcase/openapi-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI contracts for Forgetcase (common + identity + product domains)",
+  "scripts": {
+    "lint:domains": "redocly lint",
+    "bundle:domains": "mkdir -p src/.bundled && redocly bundle identity --output src/.bundled/identity.openapi.yaml && redocly bundle identity --output src/.bundled/identity.json && redocly bundle cases --output src/.bundled/cases.openapi.yaml && redocly bundle cases --output src/.bundled/cases.json && redocly bundle assessments --output src/.bundled/assessments.openapi.yaml && redocly bundle assessments --output src/.bundled/assessments.json && redocly bundle sla --output src/.bundled/sla.openapi.yaml && redocly bundle sla --output src/.bundled/sla.json && redocly bundle fulfilment --output src/.bundled/fulfilment.openapi.yaml && redocly bundle fulfilment --output src/.bundled/fulfilment.json && redocly bundle correspondence --output src/.bundled/correspondence.openapi.yaml && redocly bundle correspondence --output src/.bundled/correspondence.json",
+    "lint": "pnpm run lint:domains",
+    "bundle": "pnpm run bundle:domains"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.34.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

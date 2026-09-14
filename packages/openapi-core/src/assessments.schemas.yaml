@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase assessments schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    AssessmentId:
+      type: string
+      pattern: '^asm_[0-9A-HJKMNP-TV-Z]{26}$'
+    ExemptionId:
+      type: string
+      pattern: '^exm_[0-9A-HJKMNP-TV-Z]{26}$'
+    CaseId:
+      type: string
+      pattern: '^cas_[0-9A-HJKMNP-TV-Z]{26}$'
+
+    Article17Ground:
+      type: string
+      enum:
+        - no_longer_necessary
+        - consent_withdrawn
+        - legitimate_interest_objection
+        - marketing_objection
+        - unlawful
+        - legal_obligation
+        - child_iss
+
+    AssessmentOutcome:
+      type: string
+      enum: [erase, refuse, escalate_legal]
+
+    GroundAssessment:
+      type: object
+      required: [assessmentId, caseId, rightApplies, grounds, outcome, childWeightRationale]
+      properties:
+        assessmentId:
+          $ref: '#/components/schemas/AssessmentId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        rightApplies:
+          type: boolean
+        grounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article17Ground'
+        outcome:
+          $ref: '#/components/schemas/AssessmentOutcome'
+        childWeightRationale:
+          type: string
+        notes:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+
+    GroundAssessmentSubmit:
+      type: object
+      required: [rightApplies, grounds, outcome]
+      properties:
+        rightApplies:
+          type: boolean
+        grounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article17Ground'
+          minItems: 1
+        outcome:
+          $ref: '#/components/schemas/AssessmentOutcome'
+        childWeightRationale:
+          type: string
+        notes:
+          type: string
+
+    ExemptionType:
+      type: string
+      enum:
+        - freedom_of_expression
+        - legal_obligation
+        - public_interest_task
+        - archiving_research_statistics
+        - legal_claims
+        - public_health
+        - occupational_medicine
+        - manifestly_unfounded
+        - excessive
+        - dpa_2018
+
+    ExemptionRecord:
+      type: object
+      required: [exemptionId, caseId, exemptionType, rationale]
+      properties:
+        exemptionId:
+          $ref: '#/components/schemas/ExemptionId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        exemptionType:
+          $ref: '#/components/schemas/ExemptionType'
+        rationale:
+          type: string
+        feeBasis:
+          type: string
+          description: Required only when charging for unfounded/excessive (BR-9).
+        feeAmount:
+          type: string
+        appliedAt:
+          type: string
+          format: date-time
+
+    ExemptionApply:
+      type: object
+      required: [exemptionType, rationale]
+      properties:
+        exemptionType:
+          $ref: '#/components/schemas/ExemptionType'
+        rationale:
+          type: string
+          minLength: 1
+        feeBasis:
+          type: string
+        feeAmount:
+          type: string
+
+    GroundAssessmentResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/GroundAssessment'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ExemptionRecordResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ExemptionRecord'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ExemptionListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExemptionRecord'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase SLA API
+  version: 0.1.0
+  description: |
+    Calendar-month SLA clock, lawful extension, and proportionate identity pause (BR-3, BR-8).
+  license:
+    name: Proprietary
+    url: https://forgetcase.local/license
+  x-domain: sla
+servers:
+  - url: https://api.forgetcase.local
+security:
+  - apiKey: []
+tags:
+  - name: SlaClocks
+    description: Deadline, extension, ID pause
+paths:
+  /v1/erasure-cases/{caseId}/sla:
+    get:
+      operationId: getSlaClock
+      tags: [SlaClocks]
+      summary: Get SLA clock for a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./sla.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: SLA clock
+          content:
+            application/json:
+              schema:
+                $ref: ./sla.schemas.yaml#/components/schemas/SlaClockResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/sla/extension:
+    post:
+      operationId: extendSlaClock
+      tags: [SlaClocks]
+      summary: Apply lawful extension with notice inside month one
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./sla.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./sla.schemas.yaml#/components/schemas/SlaExtensionRequest
+      responses:
+        '200':
+          description: Extension recorded
+          content:
+            application/json:
+              schema:
+                $ref: ./sla.schemas.yaml#/components/schemas/SlaClockResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/identity-challenge:
+    post:
+      operationId: requestIdentityChallenge
+      tags: [SlaClocks]
+      summary: Issue proportionate ID challenge and pause the clock
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./sla.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./sla.schemas.yaml#/components/schemas/IdentityChallengeRequest
+      responses:
+        '201':
+          description: ID challenge issued; clock paused
+          content:
+            application/json:
+              schema:
+                $ref: ./sla.schemas.yaml#/components/schemas/IdentityChallengeResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/identity-challenge/satisfy:
+    post:
+      operationId: satisfyIdentityChallenge
+      tags: [SlaClocks]
+      summary: Mark ID received and resume the compliance clock
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./sla.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./sla.schemas.yaml#/components/schemas/IdentityChallengeSatisfy
+      responses:
+        '200':
+          description: Clock resumed
+          content:
+            application/json:
+              schema:
+                $ref: ./sla.schemas.yaml#/components/schemas/SlaClockResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey

@@ -1,21 +1,27 @@
 node_modules/
-.next/
 dist/
+.next/
 build/
 out/
 coverage/
-.turbo/
-.cache/
-*.log
+*.tsbuildinfo
 .DS_Store
 .env
 .env.*
 !.env.example
 *.pem
 .venv/
-__pycache__/
+.cache/
+packages/openapi-core/src/.bundled/
+**/node_modules/
+**/__pycache__/
+*.pyc
+test-results/
+playwright-report/
+*.log
+.turbo/
 
-# Codegen — do not push
+# Codegen — do not push (.codegen is local-only; sync from scaffold)
 .codegen/
 codegen/
 **/zero_codegen/

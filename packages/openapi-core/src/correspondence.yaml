@@ -1,0 +1,81 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase Correspondence API
+  version: 0.1.0
+  description: |
+    Completion and refusal correspondence with mandatory ICO / judicial notices (BR-6, BR-7).
+  license:
+    name: Proprietary
+    url: https://forgetcase.local/license
+  x-domain: crd
+servers:
+  - url: https://api.forgetcase.local
+security:
+  - apiKey: []
+tags:
+  - name: Correspondence
+    description: Completion / refusal / extension letters
+paths:
+  /v1/erasure-cases/{caseId}/correspondence:
+    get:
+      operationId: listCaseCorrespondence
+      tags: [Correspondence]
+      summary: List correspondence for a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./correspondence.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Correspondence items
+          content:
+            application/json:
+              schema:
+                $ref: ./correspondence.schemas.yaml#/components/schemas/CorrespondenceListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: sendCaseCorrespondence
+      tags: [Correspondence]
+      summary: Queue completion or refusal letter (mandatory clauses required)
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./correspondence.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./correspondence.schemas.yaml#/components/schemas/CorrespondenceItemCreate
+      responses:
+        '201':
+          description: Correspondence queued
+          content:
+            application/json:
+              schema:
+                $ref: ./correspondence.schemas.yaml#/components/schemas/CorrespondenceItemResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        '422':
+          $ref: ./common/responses.yaml#/components/responses/UnprocessableEntity
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey

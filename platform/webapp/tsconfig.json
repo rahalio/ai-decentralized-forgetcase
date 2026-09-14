@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/vite-env.d.ts",
+    "src/app/**/*",
+    "src/pages/**/*",
+    "src/components/**/*",
+    "src/styles/**/*",
+    "src/services/shared/**/*",
+    "src/services/domains/cases/cases.service.ts",
+    "src/services/domains/assessments/assessments.service.ts",
+    "src/services/domains/sla/sla.service.ts",
+    "src/services/domains/fulfilment/fulfilment.service.ts",
+    "src/services/domains/correspondence/correspondence.service.ts"
+  ],
+  "exclude": [
+    "src/services/domains/*/hooks/**",
+    "src/services/domains/*/facade.ts",
+    "src/services/domains/*/contracts/**",
+    "src/services/domains/*/index.ts",
+    "src/services/domains/identity/**",
+    "src/features/**"
+  ]
+}

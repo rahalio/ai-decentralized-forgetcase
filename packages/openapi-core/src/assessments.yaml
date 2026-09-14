@@ -1,0 +1,136 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase Assessments API
+  version: 0.1.0
+  description: |
+    Grounds, exemptions, and child-weight assessment before any technical erase (BR-2, BR-4, BR-7, BR-9).
+  license:
+    name: Proprietary
+    url: https://forgetcase.local/license
+  x-domain: asm
+servers:
+  - url: https://api.forgetcase.local
+security:
+  - apiKey: []
+tags:
+  - name: Assessments
+    description: Article 17 grounds and exemptions
+paths:
+  /v1/erasure-cases/{caseId}/assessment:
+    get:
+      operationId: getGroundAssessment
+      tags: [Assessments]
+      summary: Get current grounds assessment for a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./assessments.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Assessment
+          content:
+            application/json:
+              schema:
+                $ref: ./assessments.schemas.yaml#/components/schemas/GroundAssessmentResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: submitGroundAssessment
+      tags: [Assessments]
+      summary: Record grounds assessment (blocks fulfilment until confirmed)
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./assessments.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./assessments.schemas.yaml#/components/schemas/GroundAssessmentSubmit
+      responses:
+        '200':
+          description: Assessment recorded
+          content:
+            application/json:
+              schema:
+                $ref: ./assessments.schemas.yaml#/components/schemas/GroundAssessmentResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/exemptions:
+    get:
+      operationId: listExemptions
+      tags: [Assessments]
+      summary: List exemptions applied to a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./assessments.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Exemptions
+          content:
+            application/json:
+              schema:
+                $ref: ./assessments.schemas.yaml#/components/schemas/ExemptionListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: applyExemption
+      tags: [Assessments]
+      summary: Apply an exemption or unfounded/excessive determination
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./assessments.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./assessments.schemas.yaml#/components/schemas/ExemptionApply
+      responses:
+        '201':
+          description: Exemption applied
+          content:
+            application/json:
+              schema:
+                $ref: ./assessments.schemas.yaml#/components/schemas/ExemptionRecordResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey

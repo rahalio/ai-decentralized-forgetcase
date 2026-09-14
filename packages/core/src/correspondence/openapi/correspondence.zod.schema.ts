@@ -1,0 +1,395 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const sendCaseCorrespondence_Body = z
+  .object({
+    templateType: z.enum([
+      'completion',
+      'refusal',
+      'extension_notice',
+      'identity_request',
+      'recipient_list',
+    ]),
+    body: z.string().optional(),
+    includesIcoComplaintRights: z.boolean(),
+    includesJudicialRemedy: z.boolean(),
+    includesReasons: z.boolean(),
+    includesBackupHonesty: z.boolean().optional().default(true),
+    channel: z.enum(['email', 'post', 'portal']).optional().default('email'),
+  })
+  .passthrough();
+const CaseId = z.string();
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const CorrespondenceId = z.string();
+const CorrespondenceTemplateType = z.enum([
+  'completion',
+  'refusal',
+  'extension_notice',
+  'identity_request',
+  'recipient_list',
+]);
+const CorrespondenceStatus = z.enum(['queued', 'sent']);
+const CorrespondenceItem = z
+  .object({
+    correspondenceId: z.string().regex(/^crd_[0-9A-HJKMNP-TV-Z]{26}$/),
+    caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+    templateType: z.enum([
+      'completion',
+      'refusal',
+      'extension_notice',
+      'identity_request',
+      'recipient_list',
+    ]),
+    status: z.enum(['queued', 'sent']),
+    body: z.string().optional(),
+    includesIcoComplaintRights: z.boolean(),
+    includesJudicialRemedy: z.boolean(),
+    includesReasons: z.boolean(),
+    includesBackupHonesty: z.boolean().optional(),
+    channel: z.enum(['email', 'post', 'portal']).optional(),
+    sentAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const CorrespondenceListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              correspondenceId: z
+                .string()
+                .regex(/^crd_[0-9A-HJKMNP-TV-Z]{26}$/),
+              caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+              templateType: z.enum([
+                'completion',
+                'refusal',
+                'extension_notice',
+                'identity_request',
+                'recipient_list',
+              ]),
+              status: z.enum(['queued', 'sent']),
+              body: z.string().optional(),
+              includesIcoComplaintRights: z.boolean(),
+              includesJudicialRemedy: z.boolean(),
+              includesReasons: z.boolean(),
+              includesBackupHonesty: z.boolean().optional(),
+              channel: z.enum(['email', 'post', 'portal']).optional(),
+              sentAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const CorrespondenceItemCreate = z
+  .object({
+    templateType: z.enum([
+      'completion',
+      'refusal',
+      'extension_notice',
+      'identity_request',
+      'recipient_list',
+    ]),
+    body: z.string().optional(),
+    includesIcoComplaintRights: z.boolean(),
+    includesJudicialRemedy: z.boolean(),
+    includesReasons: z.boolean(),
+    includesBackupHonesty: z.boolean().optional().default(true),
+    channel: z.enum(['email', 'post', 'portal']).optional().default('email'),
+  })
+  .passthrough();
+const CorrespondenceItemResponse = z
+  .object({
+    data: z
+      .object({
+        correspondenceId: z.string().regex(/^crd_[0-9A-HJKMNP-TV-Z]{26}$/),
+        caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+        templateType: z.enum([
+          'completion',
+          'refusal',
+          'extension_notice',
+          'identity_request',
+          'recipient_list',
+        ]),
+        status: z.enum(['queued', 'sent']),
+        body: z.string().optional(),
+        includesIcoComplaintRights: z.boolean(),
+        includesJudicialRemedy: z.boolean(),
+        includesReasons: z.boolean(),
+        includesBackupHonesty: z.boolean().optional(),
+        channel: z.enum(['email', 'post', 'portal']).optional(),
+        sentAt: z.string().datetime({ offset: true }).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  sendCaseCorrespondence_Body,
+  CaseId,
+  Problem,
+  CorrespondenceId,
+  CorrespondenceTemplateType,
+  CorrespondenceStatus,
+  CorrespondenceItem,
+  ResponseMeta,
+  CorrespondenceListResponse,
+  CorrespondenceItemCreate,
+  CorrespondenceItemResponse,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'get',
+    path: '/v1/erasure-cases/:caseId/correspondence',
+    alias: 'listCaseCorrespondence',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'caseId',
+        type: 'Path',
+        schema: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  correspondenceId: z
+                    .string()
+                    .regex(/^crd_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  templateType: z.enum([
+                    'completion',
+                    'refusal',
+                    'extension_notice',
+                    'identity_request',
+                    'recipient_list',
+                  ]),
+                  status: z.enum(['queued', 'sent']),
+                  body: z.string().optional(),
+                  includesIcoComplaintRights: z.boolean(),
+                  includesJudicialRemedy: z.boolean(),
+                  includesReasons: z.boolean(),
+                  includesBackupHonesty: z.boolean().optional(),
+                  channel: z.enum(['email', 'post', 'portal']).optional(),
+                  sentAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/erasure-cases/:caseId/correspondence',
+    alias: 'sendCaseCorrespondence',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: sendCaseCorrespondence_Body,
+      },
+      {
+        name: 'caseId',
+        type: 'Path',
+        schema: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            correspondenceId: z.string().regex(/^crd_[0-9A-HJKMNP-TV-Z]{26}$/),
+            caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+            templateType: z.enum([
+              'completion',
+              'refusal',
+              'extension_notice',
+              'identity_request',
+              'recipient_list',
+            ]),
+            status: z.enum(['queued', 'sent']),
+            body: z.string().optional(),
+            includesIcoComplaintRights: z.boolean(),
+            includesJudicialRemedy: z.boolean(),
+            includesReasons: z.boolean(),
+            includesBackupHonesty: z.boolean().optional(),
+            channel: z.enum(['email', 'post', 'portal']).optional(),
+            sentAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 422,
+        description: `Semantically invalid request (e.g. PACK_EMPTY)`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

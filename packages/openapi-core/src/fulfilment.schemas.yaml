@@ -1,0 +1,236 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase fulfilment schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    CaseId:
+      type: string
+      pattern: '^cas_[0-9A-HJKMNP-TV-Z]{26}$'
+    LiveTaskId:
+      type: string
+      pattern: '^lvt_[0-9A-HJKMNP-TV-Z]{26}$'
+    BackupTaskId:
+      type: string
+      pattern: '^bku_[0-9A-HJKMNP-TV-Z]{26}$'
+    NoticeId:
+      type: string
+      pattern: '^rcn_[0-9A-HJKMNP-TV-Z]{26}$'
+
+    LiveTaskStatus:
+      type: string
+      enum: [queued, done, blocked]
+
+    LiveErasureTask:
+      type: object
+      required: [taskId, caseId, systemName, status]
+      properties:
+        taskId:
+          $ref: '#/components/schemas/LiveTaskId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        systemName:
+          type: string
+        status:
+          $ref: '#/components/schemas/LiveTaskStatus'
+        evidenceNote:
+          type: string
+        blockedReason:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+
+    LiveErasureTaskCreate:
+      type: object
+      required: [systemName]
+      properties:
+        systemName:
+          type: string
+          minLength: 1
+
+    LiveErasureTaskComplete:
+      type: object
+      properties:
+        evidenceNote:
+          type: string
+
+    BackupTaskStatus:
+      type: string
+      enum: [open, beyond_use, overwritten, na]
+
+    BackupBeyondUseTask:
+      type: object
+      required: [taskId, caseId, backupSystem, status]
+      properties:
+        taskId:
+          $ref: '#/components/schemas/BackupTaskId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        backupSystem:
+          type: string
+        status:
+          $ref: '#/components/schemas/BackupTaskStatus'
+        overwriteScheduledAt:
+          type: string
+          format: date-time
+        subjectWording:
+          type: string
+        naJustification:
+          type: string
+
+    BackupBeyondUseTaskCreate:
+      type: object
+      required: [caseId, backupSystem]
+      properties:
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        backupSystem:
+          type: string
+          minLength: 1
+
+    BackupBeyondUseTaskComplete:
+      type: object
+      required: [beyondUseConfirmed]
+      properties:
+        beyondUseConfirmed:
+          type: boolean
+        overwriteScheduledAt:
+          type: string
+          format: date-time
+        subjectWording:
+          type: string
+        naJustification:
+          type: string
+
+    RecipientKind:
+      type: string
+      enum: [controller, processor, authorised_person, online_copy]
+
+    NoticeStatus:
+      type: string
+      enum: [pending, sent, impossible, disproportionate]
+
+    RecipientNotice:
+      type: object
+      required: [noticeId, caseId, recipientKind, status]
+      properties:
+        noticeId:
+          $ref: '#/components/schemas/NoticeId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        recipientKind:
+          $ref: '#/components/schemas/RecipientKind'
+        recipientLabel:
+          type: string
+        publicUrl:
+          type: string
+          format: uri
+        status:
+          $ref: '#/components/schemas/NoticeStatus'
+        disproportionateRationale:
+          type: string
+        informIndividualIfAsked:
+          type: boolean
+        sentAt:
+          type: string
+          format: date-time
+
+    RecipientNoticeCreate:
+      type: object
+      required: [recipientKind]
+      properties:
+        recipientKind:
+          $ref: '#/components/schemas/RecipientKind'
+        recipientLabel:
+          type: string
+        publicUrl:
+          type: string
+          format: uri
+        informIndividualIfAsked:
+          type: boolean
+          default: true
+
+    RecipientNoticeUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/NoticeStatus'
+        disproportionateRationale:
+          type: string
+
+    LiveErasureTaskResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/LiveErasureTask'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    LiveErasureTaskListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/LiveErasureTask'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    BackupBeyondUseTaskResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/BackupBeyondUseTask'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    BackupBeyondUseTaskListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BackupBeyondUseTask'
+            nextCursor:
+              type: string
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    RecipientNoticeResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/RecipientNotice'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    RecipientNoticeListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecipientNotice'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

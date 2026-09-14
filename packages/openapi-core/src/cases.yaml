@@ -1,0 +1,212 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase Cases API
+  version: 0.1.0
+  description: |
+    Article 17 erasure case desk — case lifecycle, verbal/written intake, and DPO audit export.
+  license:
+    name: Proprietary
+    url: https://forgetcase.local/license
+  x-domain: cas
+servers:
+  - url: https://api.forgetcase.local
+    description: Local / product API
+security:
+  - apiKey: []
+tags:
+  - name: Cases
+    description: Erasure case desk
+  - name: Intake
+    description: Verbal and written intake
+  - name: Audit
+    description: DPO audit export packs
+paths:
+  /v1/erasure-cases:
+    get:
+      operationId: listErasureCases
+      tags: [Cases]
+      summary: List erasure cases (desk filters)
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: status
+          in: query
+          schema:
+            $ref: ./cases.schemas.yaml#/components/schemas/CaseStatus
+        - name: childDataWeight
+          in: query
+          schema: { type: boolean }
+        - name: idPaused
+          in: query
+          schema: { type: boolean }
+        - name: slaRisk
+          in: query
+          description: overdue | due_7d | extended
+          schema:
+            type: string
+            enum: [overdue, due_7d, extended]
+        - name: channel
+          in: query
+          schema:
+            $ref: ./cases.schemas.yaml#/components/schemas/CaseChannel
+      responses:
+        '200':
+          description: Cases page
+          content:
+            application/json:
+              schema:
+                $ref: ./cases.schemas.yaml#/components/schemas/ErasureCaseListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createErasureCase
+      tags: [Cases]
+      summary: Create an erasure case from written or portal intake
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./cases.schemas.yaml#/components/schemas/ErasureCaseCreate
+      responses:
+        '201':
+          description: Case created
+          content:
+            application/json:
+              schema:
+                $ref: ./cases.schemas.yaml#/components/schemas/ErasureCaseResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}:
+    get:
+      operationId: getErasureCase
+      tags: [Cases]
+      summary: Get case workspace record
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./cases.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Case
+          content:
+            application/json:
+              schema:
+                $ref: ./cases.schemas.yaml#/components/schemas/ErasureCaseResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/intake/verbal:
+    post:
+      operationId: createVerbalIntake
+      tags: [Intake]
+      summary: Guided verbal intake with read-back confirmation
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./cases.schemas.yaml#/components/schemas/VerbalIntakeRequest
+      responses:
+        '201':
+          description: Intake logged and case created (or draft saved)
+          content:
+            application/json:
+              schema:
+                $ref: ./cases.schemas.yaml#/components/schemas/ErasureCaseResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/intake-events:
+    get:
+      operationId: listCaseIntakeEvents
+      tags: [Intake]
+      summary: List intake events for a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./cases.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Intake events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: ./cases.schemas.yaml#/components/schemas/IntakeEvent
+                  meta:
+                    $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/audit/exports:
+    post:
+      operationId: createAuditExport
+      tags: [Audit]
+      summary: Create a minimised DPO / ICO audit export pack
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./cases.schemas.yaml#/components/schemas/AuditExportRequest
+      responses:
+        '201':
+          description: Export pack ready
+          content:
+            application/json:
+              schema:
+                $ref: ./cases.schemas.yaml#/components/schemas/AuditExportResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey

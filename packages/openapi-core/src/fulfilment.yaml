@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase Fulfilment API
+  version: 0.1.0
+  description: |
+    Live erasure, backup beyond-use, and recipient/online-copy notices (BR-5, BR-6, BR-10).
+  license:
+    name: Proprietary
+    url: https://forgetcase.local/license
+  x-domain: ffl
+servers:
+  - url: https://api.forgetcase.local
+security:
+  - apiKey: []
+tags:
+  - name: LiveErasure
+    description: Live system delete tasks
+  - name: BackupTasks
+    description: Backup beyond-use tasks
+  - name: RecipientNotices
+    description: Recipient and online-copy notices
+paths:
+  /v1/erasure-cases/{caseId}/live-erasure-tasks:
+    get:
+      operationId: listLiveErasureTasks
+      tags: [LiveErasure]
+      summary: List live erasure tasks for a case
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Live tasks
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveErasureTaskListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createLiveErasureTask
+      tags: [LiveErasure]
+      summary: Create a live system erasure task (requires assessment outcome erase)
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveErasureTaskCreate
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveErasureTaskResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/live-erasure-tasks/{taskId}/complete:
+    post:
+      operationId: completeLiveErasureTask
+      tags: [LiveErasure]
+      summary: Mark a live system as erased
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveTaskId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveErasureTaskComplete
+      responses:
+        '200':
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/LiveErasureTaskResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/backup-beyond-use-tasks:
+    get:
+      operationId: listBackupBeyondUseTasks
+      tags: [BackupTasks]
+      summary: List backup beyond-use tasks (records queue)
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: caseId
+          in: query
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/CaseId
+        - name: status
+          in: query
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupTaskStatus
+      responses:
+        '200':
+          description: Backup tasks page
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupBeyondUseTaskListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createBackupBeyondUseTask
+      tags: [BackupTasks]
+      summary: Create a backup beyond-use task
+      parameters:
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupBeyondUseTaskCreate
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupBeyondUseTaskResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/backup-beyond-use-tasks/{taskId}/complete:
+    post:
+      operationId: completeBackupBeyondUseTask
+      tags: [BackupTasks]
+      summary: Mark backup beyond-use (or documented N/A)
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupTaskId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupBeyondUseTaskComplete
+      responses:
+        '200':
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/BackupBeyondUseTaskResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/erasure-cases/{caseId}/recipient-notices:
+    get:
+      operationId: listRecipientNotices
+      tags: [RecipientNotices]
+      summary: List recipient and online-copy notices
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/CaseId
+      responses:
+        '200':
+          description: Notices
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/RecipientNoticeListResponse
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+    post:
+      operationId: createRecipientNotice
+      tags: [RecipientNotices]
+      summary: Add a recipient or online-copy notice obligation
+      parameters:
+        - name: caseId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/CaseId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/RecipientNoticeCreate
+      responses:
+        '201':
+          description: Notice created
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/RecipientNoticeResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+  /v1/recipient-notices/{noticeId}:
+    patch:
+      operationId: updateRecipientNotice
+      tags: [RecipientNotices]
+      summary: Update notice status (sent / disproportionate / impossible)
+      parameters:
+        - name: noticeId
+          in: path
+          required: true
+          schema:
+            $ref: ./fulfilment.schemas.yaml#/components/schemas/NoticeId
+        - $ref: ./common/parameters.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./fulfilment.schemas.yaml#/components/schemas/RecipientNoticeUpdate
+      responses:
+        '200':
+          description: Notice updated
+          content:
+            application/json:
+              schema:
+                $ref: ./fulfilment.schemas.yaml#/components/schemas/RecipientNoticeResponse
+        '400':
+          $ref: ./common/responses.yaml#/components/responses/BadRequest
+        '401':
+          $ref: ./common/responses.yaml#/components/responses/Unauthorized
+        '404':
+          $ref: ./common/responses.yaml#/components/responses/NotFound
+        default:
+          $ref: ./common/responses.yaml#/components/responses/Problem
+
+components:
+  securitySchemes:
+    apiKey:
+      $ref: ./common/security.yaml#/components/securitySchemes/apiKey

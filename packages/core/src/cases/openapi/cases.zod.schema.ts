@@ -1,0 +1,880 @@
+import { makeApi, Zodios, type ZodiosOptions } from '@zodios/core';
+import { z } from 'zod';
+
+const createErasureCase_Body = z
+  .object({
+    channel: z.enum(['verbal', 'written', 'portal']),
+    receivedAt: z.string().datetime({ offset: true }),
+    subjectRef: z.string(),
+    requestSummary: z.string().optional(),
+    childDataWeight: z.boolean().optional().default(false),
+    ticketRef: z.string().optional(),
+  })
+  .passthrough();
+const createVerbalIntake_Body = z
+  .object({
+    subjectRef: z.string(),
+    requestSummary: z.string().min(1),
+    whoSpoke: z.string().optional(),
+    dataConcern: z.string().optional(),
+    childRelatedHint: z.boolean().optional(),
+    readbackConfirmed: z.boolean(),
+    ticketRef: z.string().optional(),
+    saveAsDraft: z.boolean().optional().default(false),
+  })
+  .passthrough();
+const createAuditExport_Body = z
+  .object({
+    caseIds: z.array(z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/)),
+    fromReceivedAt: z.string().datetime({ offset: true }),
+    toReceivedAt: z.string().datetime({ offset: true }),
+    includeIdMaterials: z.boolean().default(false),
+  })
+  .partial()
+  .passthrough();
+const CaseStatus = z.enum([
+  'intake',
+  'assessing',
+  'fulfilling',
+  'refused',
+  'completed',
+]);
+const CaseChannel = z.enum(['verbal', 'written', 'portal']);
+const Problem = z
+  .object({
+    type: z.string().url(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string(),
+    instance: z.string().url(),
+    code: z.string(),
+  })
+  .partial()
+  .passthrough();
+const CaseId = z.string();
+const ErasureCase = z
+  .object({
+    caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channel: z.enum(['verbal', 'written', 'portal']),
+    status: z.enum([
+      'intake',
+      'assessing',
+      'fulfilling',
+      'refused',
+      'completed',
+    ]),
+    receivedAt: z.string().datetime({ offset: true }),
+    dueAt: z.string().datetime({ offset: true }),
+    operationalTargetDueAt: z.string().datetime({ offset: true }).optional(),
+    childDataWeight: z.boolean(),
+    subjectRef: z.string(),
+    requestSummary: z.string().optional(),
+    groundOutcome: z
+      .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+      .optional(),
+    backupStatus: z
+      .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+      .optional(),
+    idPaused: z.boolean().optional(),
+    extended: z.boolean().optional(),
+    createdAt: z.string().datetime({ offset: true }).optional(),
+    updatedAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .passthrough();
+const ErasureCaseListData = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+          channel: z.enum(['verbal', 'written', 'portal']),
+          status: z.enum([
+            'intake',
+            'assessing',
+            'fulfilling',
+            'refused',
+            'completed',
+          ]),
+          receivedAt: z.string().datetime({ offset: true }),
+          dueAt: z.string().datetime({ offset: true }),
+          operationalTargetDueAt: z
+            .string()
+            .datetime({ offset: true })
+            .optional(),
+          childDataWeight: z.boolean(),
+          subjectRef: z.string(),
+          requestSummary: z.string().optional(),
+          groundOutcome: z
+            .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+            .optional(),
+          backupStatus: z
+            .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+            .optional(),
+          idPaused: z.boolean().optional(),
+          extended: z.boolean().optional(),
+          createdAt: z.string().datetime({ offset: true }).optional(),
+          updatedAt: z.string().datetime({ offset: true }).optional(),
+        })
+        .passthrough()
+    ),
+    nextCursor: z.string().optional(),
+  })
+  .passthrough();
+const ResponseMeta = z
+  .object({
+    requestId: z.string().uuid(),
+    correlationId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+  })
+  .partial()
+  .passthrough();
+const ErasureCaseListResponse = z
+  .object({
+    data: z
+      .object({
+        items: z.array(
+          z
+            .object({
+              caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+              channel: z.enum(['verbal', 'written', 'portal']),
+              status: z.enum([
+                'intake',
+                'assessing',
+                'fulfilling',
+                'refused',
+                'completed',
+              ]),
+              receivedAt: z.string().datetime({ offset: true }),
+              dueAt: z.string().datetime({ offset: true }),
+              operationalTargetDueAt: z
+                .string()
+                .datetime({ offset: true })
+                .optional(),
+              childDataWeight: z.boolean(),
+              subjectRef: z.string(),
+              requestSummary: z.string().optional(),
+              groundOutcome: z
+                .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+                .optional(),
+              backupStatus: z
+                .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+                .optional(),
+              idPaused: z.boolean().optional(),
+              extended: z.boolean().optional(),
+              createdAt: z.string().datetime({ offset: true }).optional(),
+              updatedAt: z.string().datetime({ offset: true }).optional(),
+            })
+            .passthrough()
+        ),
+        nextCursor: z.string().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const ErasureCaseCreate = z
+  .object({
+    channel: z.enum(['verbal', 'written', 'portal']),
+    receivedAt: z.string().datetime({ offset: true }),
+    subjectRef: z.string(),
+    requestSummary: z.string().optional(),
+    childDataWeight: z.boolean().optional().default(false),
+    ticketRef: z.string().optional(),
+  })
+  .passthrough();
+const ErasureCaseResponse = z
+  .object({
+    data: z
+      .object({
+        caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+        channel: z.enum(['verbal', 'written', 'portal']),
+        status: z.enum([
+          'intake',
+          'assessing',
+          'fulfilling',
+          'refused',
+          'completed',
+        ]),
+        receivedAt: z.string().datetime({ offset: true }),
+        dueAt: z.string().datetime({ offset: true }),
+        operationalTargetDueAt: z
+          .string()
+          .datetime({ offset: true })
+          .optional(),
+        childDataWeight: z.boolean(),
+        subjectRef: z.string(),
+        requestSummary: z.string().optional(),
+        groundOutcome: z
+          .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+          .optional(),
+        backupStatus: z
+          .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+          .optional(),
+        idPaused: z.boolean().optional(),
+        extended: z.boolean().optional(),
+        createdAt: z.string().datetime({ offset: true }).optional(),
+        updatedAt: z.string().datetime({ offset: true }).optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+const VerbalIntakeRequest = z
+  .object({
+    subjectRef: z.string(),
+    requestSummary: z.string().min(1),
+    whoSpoke: z.string().optional(),
+    dataConcern: z.string().optional(),
+    childRelatedHint: z.boolean().optional(),
+    readbackConfirmed: z.boolean(),
+    ticketRef: z.string().optional(),
+    saveAsDraft: z.boolean().optional().default(false),
+  })
+  .passthrough();
+const IntakeEventId = z.string();
+const IntakeEvent = z
+  .object({
+    intakeEventId: z.string().regex(/^int_[0-9A-HJKMNP-TV-Z]{26}$/),
+    caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+    channel: z.enum(['verbal', 'written', 'portal']),
+    capturedAt: z.string().datetime({ offset: true }),
+    capturedBy: z.string().optional(),
+    requestSummary: z.string().optional(),
+    readbackConfirmed: z.boolean(),
+    ticketRef: z.string().optional(),
+  })
+  .passthrough();
+const AuditExportRequest = z
+  .object({
+    caseIds: z.array(z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/)),
+    fromReceivedAt: z.string().datetime({ offset: true }),
+    toReceivedAt: z.string().datetime({ offset: true }),
+    includeIdMaterials: z.boolean().default(false),
+  })
+  .partial()
+  .passthrough();
+const AuditExportPack = z
+  .object({
+    exportId: z.string(),
+    generatedAt: z.string().datetime({ offset: true }),
+    caseCount: z.number().int().gte(0),
+    minimized: z.boolean(),
+    downloadUrl: z.string().url().optional(),
+  })
+  .passthrough();
+const AuditExportResponse = z
+  .object({
+    data: z
+      .object({
+        exportId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+        caseCount: z.number().int().gte(0),
+        minimized: z.boolean(),
+        downloadUrl: z.string().url().optional(),
+      })
+      .passthrough(),
+    meta: z
+      .object({
+        requestId: z.string().uuid(),
+        correlationId: z.string(),
+        generatedAt: z.string().datetime({ offset: true }),
+      })
+      .partial()
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+export const schemas: any = {
+  createErasureCase_Body,
+  createVerbalIntake_Body,
+  createAuditExport_Body,
+  CaseStatus,
+  CaseChannel,
+  Problem,
+  CaseId,
+  ErasureCase,
+  ErasureCaseListData,
+  ResponseMeta,
+  ErasureCaseListResponse,
+  ErasureCaseCreate,
+  ErasureCaseResponse,
+  VerbalIntakeRequest,
+  IntakeEventId,
+  IntakeEvent,
+  AuditExportRequest,
+  AuditExportPack,
+  AuditExportResponse,
+};
+
+const endpoints = makeApi([
+  {
+    method: 'post',
+    path: '/v1/audit/exports',
+    alias: 'createAuditExport',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: createAuditExport_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            exportId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+            caseCount: z.number().int().gte(0),
+            minimized: z.boolean(),
+            downloadUrl: z.string().url().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasure-cases',
+    alias: 'listErasureCases',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'cursor',
+        type: 'Query',
+        schema: z.string().optional(),
+      },
+      {
+        name: 'limit',
+        type: 'Query',
+        schema: z.number().int().gte(1).lte(200).optional().default(50),
+      },
+      {
+        name: 'status',
+        type: 'Query',
+        schema: z
+          .enum(['intake', 'assessing', 'fulfilling', 'refused', 'completed'])
+          .optional(),
+      },
+      {
+        name: 'childDataWeight',
+        type: 'Query',
+        schema: z.boolean().optional(),
+      },
+      {
+        name: 'idPaused',
+        type: 'Query',
+        schema: z.boolean().optional(),
+      },
+      {
+        name: 'slaRisk',
+        type: 'Query',
+        schema: z.enum(['overdue', 'due_7d', 'extended']).optional(),
+      },
+      {
+        name: 'channel',
+        type: 'Query',
+        schema: z.enum(['verbal', 'written', 'portal']).optional(),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  channel: z.enum(['verbal', 'written', 'portal']),
+                  status: z.enum([
+                    'intake',
+                    'assessing',
+                    'fulfilling',
+                    'refused',
+                    'completed',
+                  ]),
+                  receivedAt: z.string().datetime({ offset: true }),
+                  dueAt: z.string().datetime({ offset: true }),
+                  operationalTargetDueAt: z
+                    .string()
+                    .datetime({ offset: true })
+                    .optional(),
+                  childDataWeight: z.boolean(),
+                  subjectRef: z.string(),
+                  requestSummary: z.string().optional(),
+                  groundOutcome: z
+                    .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+                    .optional(),
+                  backupStatus: z
+                    .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+                    .optional(),
+                  idPaused: z.boolean().optional(),
+                  extended: z.boolean().optional(),
+                  createdAt: z.string().datetime({ offset: true }).optional(),
+                  updatedAt: z.string().datetime({ offset: true }).optional(),
+                })
+                .passthrough()
+            ),
+            nextCursor: z.string().optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/erasure-cases',
+    alias: 'createErasureCase',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: createErasureCase_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channel: z.enum(['verbal', 'written', 'portal']),
+            status: z.enum([
+              'intake',
+              'assessing',
+              'fulfilling',
+              'refused',
+              'completed',
+            ]),
+            receivedAt: z.string().datetime({ offset: true }),
+            dueAt: z.string().datetime({ offset: true }),
+            operationalTargetDueAt: z
+              .string()
+              .datetime({ offset: true })
+              .optional(),
+            childDataWeight: z.boolean(),
+            subjectRef: z.string(),
+            requestSummary: z.string().optional(),
+            groundOutcome: z
+              .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+              .optional(),
+            backupStatus: z
+              .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+              .optional(),
+            idPaused: z.boolean().optional(),
+            extended: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }).optional(),
+            updatedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasure-cases/:caseId',
+    alias: 'getErasureCase',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'caseId',
+        type: 'Path',
+        schema: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channel: z.enum(['verbal', 'written', 'portal']),
+            status: z.enum([
+              'intake',
+              'assessing',
+              'fulfilling',
+              'refused',
+              'completed',
+            ]),
+            receivedAt: z.string().datetime({ offset: true }),
+            dueAt: z.string().datetime({ offset: true }),
+            operationalTargetDueAt: z
+              .string()
+              .datetime({ offset: true })
+              .optional(),
+            childDataWeight: z.boolean(),
+            subjectRef: z.string(),
+            requestSummary: z.string().optional(),
+            groundOutcome: z
+              .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+              .optional(),
+            backupStatus: z
+              .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+              .optional(),
+            idPaused: z.boolean().optional(),
+            extended: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }).optional(),
+            updatedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/v1/erasure-cases/:caseId/intake-events',
+    alias: 'listCaseIntakeEvents',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'caseId',
+        type: 'Path',
+        schema: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            items: z.array(
+              z
+                .object({
+                  intakeEventId: z
+                    .string()
+                    .regex(/^int_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+                  channel: z.enum(['verbal', 'written', 'portal']),
+                  capturedAt: z.string().datetime({ offset: true }),
+                  capturedBy: z.string().optional(),
+                  requestSummary: z.string().optional(),
+                  readbackConfirmed: z.boolean(),
+                  ticketRef: z.string().optional(),
+                })
+                .passthrough()
+            ),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 404,
+        description: `Resource not found`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+  {
+    method: 'post',
+    path: '/v1/intake/verbal',
+    alias: 'createVerbalIntake',
+    requestFormat: 'json',
+    parameters: [
+      {
+        name: 'body',
+        type: 'Body',
+        schema: createVerbalIntake_Body,
+      },
+      {
+        name: 'Idempotency-Key',
+        type: 'Header',
+        schema: z.string().min(1).max(128),
+      },
+    ],
+    response: z
+      .object({
+        data: z
+          .object({
+            caseId: z.string().regex(/^cas_[0-9A-HJKMNP-TV-Z]{26}$/),
+            channel: z.enum(['verbal', 'written', 'portal']),
+            status: z.enum([
+              'intake',
+              'assessing',
+              'fulfilling',
+              'refused',
+              'completed',
+            ]),
+            receivedAt: z.string().datetime({ offset: true }),
+            dueAt: z.string().datetime({ offset: true }),
+            operationalTargetDueAt: z
+              .string()
+              .datetime({ offset: true })
+              .optional(),
+            childDataWeight: z.boolean(),
+            subjectRef: z.string(),
+            requestSummary: z.string().optional(),
+            groundOutcome: z
+              .enum(['pending', 'erase', 'refuse', 'escalate_legal'])
+              .optional(),
+            backupStatus: z
+              .enum(['not_started', 'in_progress', 'beyond_use', 'na'])
+              .optional(),
+            idPaused: z.boolean().optional(),
+            extended: z.boolean().optional(),
+            createdAt: z.string().datetime({ offset: true }).optional(),
+            updatedAt: z.string().datetime({ offset: true }).optional(),
+          })
+          .passthrough(),
+        meta: z
+          .object({
+            requestId: z.string().uuid(),
+            correlationId: z.string(),
+            generatedAt: z.string().datetime({ offset: true }),
+          })
+          .partial()
+          .passthrough()
+          .optional(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `Malformed request`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+      {
+        status: 401,
+        description: `Missing or invalid API key`,
+        schema: z
+          .object({
+            type: z.string().url(),
+            title: z.string(),
+            status: z.number().int(),
+            detail: z.string(),
+            instance: z.string().url(),
+            code: z.string(),
+          })
+          .partial()
+          .passthrough(),
+      },
+    ],
+  },
+]);
+
+export const api: any = new Zodios(
+  'https://api.ddd-codegen-starter.local/v1',
+  endpoints
+);
+
+export function createApiClient(baseUrl: string, options?: ZodiosOptions): any {
+  return new Zodios(baseUrl, endpoints, options);
+}

@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase cases schemas
+  version: 0.1.0
+  description: ErasureCase, IntakeEvent, and audit export schemas.
+paths: {}
+components:
+  schemas:
+    CaseId:
+      type: string
+      pattern: '^cas_[0-9A-HJKMNP-TV-Z]{26}$'
+      description: Prefixed erasure case id.
+
+    IntakeEventId:
+      type: string
+      pattern: '^int_[0-9A-HJKMNP-TV-Z]{26}$'
+
+    CaseChannel:
+      type: string
+      enum: [verbal, written, portal]
+
+    CaseStatus:
+      type: string
+      enum: [intake, assessing, fulfilling, refused, completed]
+
+    ErasureCase:
+      type: object
+      required: [caseId, channel, status, receivedAt, dueAt, childDataWeight, subjectRef]
+      properties:
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        channel:
+          $ref: '#/components/schemas/CaseChannel'
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        receivedAt:
+          type: string
+          format: date-time
+        dueAt:
+          type: string
+          format: date-time
+        operationalTargetDueAt:
+          type: string
+          format: date-time
+        childDataWeight:
+          type: boolean
+        subjectRef:
+          type: string
+          description: Minimised subject reference (not raw ID documents).
+        requestSummary:
+          type: string
+        groundOutcome:
+          type: string
+          enum: [pending, erase, refuse, escalate_legal]
+        backupStatus:
+          type: string
+          enum: [not_started, in_progress, beyond_use, na]
+        idPaused:
+          type: boolean
+        extended:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErasureCaseCreate:
+      type: object
+      required: [channel, receivedAt, subjectRef]
+      properties:
+        channel:
+          $ref: '#/components/schemas/CaseChannel'
+        receivedAt:
+          type: string
+          format: date-time
+        subjectRef:
+          type: string
+        requestSummary:
+          type: string
+        childDataWeight:
+          type: boolean
+          default: false
+        ticketRef:
+          type: string
+          description: Optional support ticket / email id.
+
+    VerbalIntakeRequest:
+      type: object
+      required: [subjectRef, requestSummary, readbackConfirmed]
+      properties:
+        subjectRef:
+          type: string
+        requestSummary:
+          type: string
+          minLength: 1
+        whoSpoke:
+          type: string
+        dataConcern:
+          type: string
+        childRelatedHint:
+          type: boolean
+        readbackConfirmed:
+          type: boolean
+        ticketRef:
+          type: string
+        saveAsDraft:
+          type: boolean
+          default: false
+
+    IntakeEvent:
+      type: object
+      required: [intakeEventId, caseId, channel, capturedAt, readbackConfirmed]
+      properties:
+        intakeEventId:
+          $ref: '#/components/schemas/IntakeEventId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        channel:
+          $ref: '#/components/schemas/CaseChannel'
+        capturedAt:
+          type: string
+          format: date-time
+        capturedBy:
+          type: string
+        requestSummary:
+          type: string
+        readbackConfirmed:
+          type: boolean
+        ticketRef:
+          type: string
+
+    AuditExportRequest:
+      type: object
+      properties:
+        caseIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseId'
+        fromReceivedAt:
+          type: string
+          format: date-time
+        toReceivedAt:
+          type: string
+          format: date-time
+        includeIdMaterials:
+          type: boolean
+          default: false
+          description: Must remain false unless ICO protocol requires; prefer minimised.
+
+    AuditExportPack:
+      type: object
+      required: [exportId, generatedAt, caseCount, minimized]
+      properties:
+        exportId:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        caseCount:
+          type: integer
+          minimum: 0
+        minimized:
+          type: boolean
+        downloadUrl:
+          type: string
+          format: uri
+
+    ErasureCaseResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ErasureCase'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    ErasureCaseListData:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErasureCase'
+        nextCursor:
+          type: string
+
+    ErasureCaseListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ErasureCaseListData'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    IntakeEventResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/IntakeEvent'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    AuditExportResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AuditExportPack'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta

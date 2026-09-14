@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Forgetcase correspondence schemas
+  version: 0.1.0
+paths: {}
+components:
+  schemas:
+    CaseId:
+      type: string
+      pattern: '^cas_[0-9A-HJKMNP-TV-Z]{26}$'
+    CorrespondenceId:
+      type: string
+      pattern: '^crd_[0-9A-HJKMNP-TV-Z]{26}$'
+
+    CorrespondenceTemplateType:
+      type: string
+      enum: [completion, refusal, extension_notice, identity_request, recipient_list]
+
+    CorrespondenceStatus:
+      type: string
+      enum: [queued, sent]
+
+    CorrespondenceItem:
+      type: object
+      required:
+        - correspondenceId
+        - caseId
+        - templateType
+        - status
+        - includesIcoComplaintRights
+        - includesJudicialRemedy
+        - includesReasons
+      properties:
+        correspondenceId:
+          $ref: '#/components/schemas/CorrespondenceId'
+        caseId:
+          $ref: '#/components/schemas/CaseId'
+        templateType:
+          $ref: '#/components/schemas/CorrespondenceTemplateType'
+        status:
+          $ref: '#/components/schemas/CorrespondenceStatus'
+        body:
+          type: string
+        includesIcoComplaintRights:
+          type: boolean
+        includesJudicialRemedy:
+          type: boolean
+        includesReasons:
+          type: boolean
+        includesBackupHonesty:
+          type: boolean
+        channel:
+          type: string
+          enum: [email, post, portal]
+        sentAt:
+          type: string
+          format: date-time
+
+    CorrespondenceItemCreate:
+      type: object
+      required: [templateType, includesIcoComplaintRights, includesJudicialRemedy, includesReasons]
+      properties:
+        templateType:
+          $ref: '#/components/schemas/CorrespondenceTemplateType'
+        body:
+          type: string
+        includesIcoComplaintRights:
+          type: boolean
+        includesJudicialRemedy:
+          type: boolean
+        includesReasons:
+          type: boolean
+        includesBackupHonesty:
+          type: boolean
+          default: true
+        channel:
+          type: string
+          enum: [email, post, portal]
+          default: email
+
+    CorrespondenceItemResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CorrespondenceItem'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
+
+    CorrespondenceListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/CorrespondenceItem'
+        meta:
+          $ref: ./common/envelopes.yaml#/components/schemas/ResponseMeta
